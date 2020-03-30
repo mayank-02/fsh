@@ -1,11 +1,11 @@
 program: shell.o parse.o
-		gcc shell.o parse.o -o program -g3
+		gcc shell.o parse.o -o program -g3 -Wall
 	
 shell.o: shell.c shell.h
-		gcc shell.c -c -g3 
+		gcc shell.c -c -g3 -Wall
 
 parse.o: parse.c parse.h
-		gcc parse.c -c -g3
+		gcc parse.c -c -g3 -Wall
 		
 run:
 	./program
