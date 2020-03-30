@@ -16,8 +16,10 @@
 #define CREATE_MODES (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)
 
 /* For showing colored prompt */
-#define COLOR_GREEN "\x1b[32m"
-#define COLOR_RESET "\x1b[0m"
+#define CYN   "\x1B[36m"
+#define BLU   "\x1B[34m"
+#define GRN   "\x1B[32m"
+#define RESET "\x1B[0m"
 
 /* States a process or a job can be in */
 typedef enum {
