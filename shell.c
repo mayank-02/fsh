@@ -5,10 +5,33 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <limits.h>
+#include <sys/types.h>
+#include <pwd.h>
 #include "shell.h"
 
 void printPrompt() {
-	printf(COLOR_GREEN "$ " COLOR_RESET);
+	char cwd[PATH_MAX];
+	if(getcwd(cwd, sizeof(cwd)) == NULL) {
+		perror("getcwd");
+		exit(EXIT_FAILURE);
+	}
+	
+	char hostname[HOST_NAME_MAX + 1];
+	gethostname(hostname, HOST_NAME_MAX + 1);
+	
+	// uid_t uid = geteuid();
+	struct passwd *pw = getpwuid(geteuid());
+	if(pw == NULL) {
+		perror("getpwuid");
+	}
+
+	printf("╭─");
+	printf(CYN "%s@%s " RESET, pw->pw_name, hostname);
+	printf(BLU "[%s]\n" RESET, cwd);
+	printf("╰─");
+	printf(GRN "$ " RESET);
+	
 	return;
 }
 
@@ -17,7 +40,7 @@ void sigchldHandler(int signum) {
 	pid_t temppid = waitpid(-1, &status, WNOHANG);
 	if (temppid <= 0)
 		return;
-	
+
 	if(WIFEXITED(status)) {
 		for(int i = 0; i < jobsTableIdx; i++) {
 			for(int j = 0; j < MAX_PROCS_IN_GROUP; j++) {
@@ -82,7 +105,7 @@ void executor(cmdTable *cmdTab) {
 	/* Make all the pipes needed for the commands */
 	for(int i = 0; i < cmdTab->numCmds; i++) {
 		if(pipe(pfd + i*2) < 0) {
-			perror("pipe :");	
+			perror("pipe :");
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -160,14 +183,14 @@ void executor(cmdTable *cmdTab) {
 			for(int j = 0; j < (2 * numPipes); j++) {
 				close(pfd[j]);
 			}
-			
+
 			/* Execute the process finally */
 			if((execvp(cmdTab->args[i][0], cmdTab->args[i])) == -1) {
 				perror(cmdTab->args[i][0]);
 				freeCmdTable(cmdTab);
 				exit(EXIT_FAILURE);
 			}
-		} 
+		}
 		else {
 			/* Parent process */
 			close(pfd[2*i + 1]);
@@ -195,7 +218,7 @@ void executor(cmdTable *cmdTab) {
 			}
 		}
 	}
-	
+
 	/* Close all pfds */
 	for(int j = 0; j < (2 * numPipes); j++) {
 		close(pfd[j]);
@@ -205,7 +228,7 @@ void executor(cmdTable *cmdTab) {
 	if(!cmdTab->isbackground) {
 		/* Set process group to foreground */
 		tcsetpgrp(STDIN_FILENO, pgid);
-		
+
 		/* Wait for all processes in process group */
 		for(int j = 0; j < numPipes + 1; j++) {
 			if((tmp = waitpid(-pgid, &status, WUNTRACED)) == -1) {
@@ -239,12 +262,12 @@ void executor(cmdTable *cmdTab) {
 		/* Set shell to foreground again */
 		tcsetpgrp(STDIN_FILENO, getpgid(getpid()));
 	}
-	
+
 	return;
 }
 
 void fg() {
-	
+
 	/* Return if no background or stopped jobs */
 	if(jobsTableIdx <= 0) {
 		printf("No background or stopped jobs to send to foreground\n");
@@ -253,7 +276,7 @@ void fg() {
 
 	pid_t tmp, pgid = jobsTable[jobsTableIdx - 1].pgid;
 	int status;
-	
+
 	/* Set handlers */
 	signal(SIGINT, sigintHandler);
 	signal(SIGTSTP, sigtstpHandler);
@@ -263,7 +286,7 @@ void fg() {
 
 	/* Set process group to foreground */
 	tcsetpgrp(STDIN_FILENO, pgid);
-	
+
 	/* Send continue signal to process group */
 	kill(-pgid, SIGCONT);
 
@@ -291,7 +314,7 @@ void fg() {
 			/* Change status because stop signal was received */
 			jobsTable[jobsTableIdx - 1].status = STOPPED;
 		}
-	}	
+	}
 	/* Remove process group from job table if no more processes are running */
 	if(jobsTable[jobsTableIdx - 1].numProcs == 0) {
 		jobsTableIdx--;
@@ -304,7 +327,7 @@ void fg() {
 }
 
 void bg() {
-	
+
 	/* Check if there are background or stopped jobs if any */
 	if(jobsTableIdx <= 0) {
 		printf("No stopped jobs to send to background\n");
@@ -313,12 +336,12 @@ void bg() {
 
 	for(int i = jobsTableIdx - 1; i >= 0; i--) {
 		/* Find most recent STOPPED job */
-		if(jobsTable[i].status == STOPPED) {			
+		if(jobsTable[i].status == STOPPED) {
 			/* Send continue signal */
 			if(kill(-jobsTable[i].pgid, SIGCONT) < 0) {
 				perror("bg: ");
 			}
-			
+
 			/* Update status in job table */
 			jobsTable[i].status = BG;
 			break;
@@ -334,17 +357,16 @@ void freeJobsTable() {
 }
 
 int main() {
-	
 	char *cmdLine = malloc(CMD_SIZE * sizeof(char));
 
 	/* To handle Ctrl+C and Ctrl+Z signals */
-	signal(SIGINT, sigintHandler);
+	signal(SIGINT,  sigintHandler);
    	signal(SIGTSTP, sigtstpHandler);
    	signal(SIGCHLD, sigchldHandler);
 
 	while (1) {
-		printf(COLOR_GREEN "$ " COLOR_RESET);
-		
+		printPrompt();
+
 		fgets(cmdLine, 1024, stdin);
 		cmdLine[strcspn(cmdLine, "\n")] = '\0';
 		if(!strlen(cmdLine))
@@ -364,6 +386,14 @@ int main() {
 		}
 		else if(strcmp(cmdLine, "jobs") == 0) {
 			printJobsTable();
+			continue;
+		}
+		else if(strncmp(cmdLine, "cd ", 3) == 0) {
+			char *token = strtok(cmdLine, " ");
+			token = strtok(NULL, " ");
+			if(chdir(token) == -1) {
+				perror("cd");
+			}
 			continue;
 		}
 
