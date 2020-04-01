@@ -79,9 +79,19 @@ void printJobsTable() {
 		return;
 	}
 
-	printf(" PGID \tStatus\tCommand\n");
+	printf(" PGID \t  Status \tCommand\n");
 	for(int i = 0; i < jobsTableIdx; i++) {
-		printf("[%d]\t  %d\t%s\n", jobsTable[i].pgid, jobsTable[i].status, jobsTable[i].cmdTab.cmdLine);
+		switch(jobsTable[i].status) {
+		case FG:
+			printf("[%d]\t  Foreground\t%s\n", jobsTable[i].pgid, jobsTable[i].cmdTab.cmdLine);
+			break;
+		case BG:
+			printf("[%d]\t  Running\t%s\n", jobsTable[i].pgid, jobsTable[i].cmdTab.cmdLine);
+			break;
+		case STOPPED:
+			printf("[%d]\t  Stopped\t%s\n", jobsTable[i].pgid, jobsTable[i].cmdTab.cmdLine);
+			break;
+		}
 	}
 }
 
