@@ -10,6 +10,12 @@
 #include <pwd.h>
 #include "shell.h"
 
+/**
+ * @brief Prints a pretty prompt 
+ * 
+ * Prints a pretty prompt consisting of username, hostname and 
+ * current working directory
+ */
 void printPrompt() {
 	char cwd[PATH_MAX];
 	if(getcwd(cwd, sizeof(cwd)) == NULL) {
@@ -20,7 +26,6 @@ void printPrompt() {
 	char hostname[HOST_NAME_MAX + 1];
 	gethostname(hostname, HOST_NAME_MAX + 1);
 	
-	// uid_t uid = geteuid();
 	struct passwd *pw = getpwuid(geteuid());
 	if(pw == NULL) {
 		perror("getpwuid");
@@ -35,6 +40,13 @@ void printPrompt() {
 	return;
 }
 
+/**
+ * @brief Handler for SIGCHLD
+ * 
+ * Handles the termination of child processes by updating status in jobs table
+ * 
+ * @param signum Integer
+ */
 void sigchldHandler(int signum) {
 	int status;
 	pid_t temppid = waitpid(-1, &status, WNOHANG);
@@ -61,18 +73,36 @@ void sigchldHandler(int signum) {
 	}
 }
 
+/**
+ * @brief Handler for SIGINT
+ * 
+ * Ignores the signal and prints prompt again
+ * 
+ * @param signum Integer
+ */
 void sigintHandler(int signum) {
 	printf("\n");
 	printPrompt();
     fflush(stdout);
 }
 
+/**
+ * @brief Handler for SIGTSTP
+ * 
+ * Ignores the signal and prints prompt again
+ * 
+ * @param signum Integer
+ */
 void sigtstpHandler(int signum) {
 	printf("\n");
 	printPrompt();
     fflush(stdout);
 }
 
+/**
+ * @brief Prints jobs table
+ * 
+ */
 void printJobsTable() {
 	if(jobsTableIdx == 0) {
 		printf("No background or stopped jobs\n");
@@ -95,6 +125,12 @@ void printJobsTable() {
 	}
 }
 
+/**
+ * @brief Makes a job out of a command table
+ * 
+ * @param cmdTab Pointer to command table
+ * @return job
+ */
 job makeJob(cmdTable *cmdTab) {
 	job temp;
 	temp.cmdTab = *cmdTab;
@@ -105,6 +141,15 @@ job makeJob(cmdTable *cmdTab) {
 	return temp;
 }
 
+/**
+ * @brief Executes the job
+ * 
+ * Given a command table, makes a job out of it and then executes it using
+ * fork exec semantics after doing needed redirection / piping.
+ * It waits job was a foreground process.
+ * 
+ * @param cmdTab Pointer to command table
+ */
 void executor(cmdTable *cmdTab) {
 	pid_t pid, pgid, tmp;
 	int infd, outfd, status;
@@ -276,6 +321,10 @@ void executor(cmdTable *cmdTab) {
 	return;
 }
 
+/**
+ * @brief Bring the most recent stopped / background job to foreground
+ * 
+ */
 void fg() {
 
 	/* Return if no background or stopped jobs */
@@ -336,6 +385,10 @@ void fg() {
 	tcsetpgrp(STDIN_FILENO, getpgid(getpid()));
 }
 
+/**
+ * @brief Runs the most recent stopped job in background
+ * 
+ */
 void bg() {
 
 	/* Check if there are background or stopped jobs if any */
@@ -359,6 +412,10 @@ void bg() {
 	}
 }
 
+/**
+ * @brief Frees the global job table
+ * 
+ */
 void freeJobsTable() {
 	for(int i = 0; i < jobsTableIdx; i++) {
 		freeCmdTable(&jobsTable[i].cmdTab);
@@ -366,6 +423,14 @@ void freeJobsTable() {
 	return;
 }
 
+/**
+ * @brief Main function
+ * 
+ * Accepts a command line as input, parses it, executes it and then
+ * finally frees it for every command until shell has exited.
+ * 
+ * @return int 0 if success, errno on failure
+ */
 int main() {
 	char *cmdLine = malloc(CMD_SIZE * sizeof(char));
 

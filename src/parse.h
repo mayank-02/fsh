@@ -39,28 +39,10 @@ typedef enum {
 	COMMAND, INFILE, OUTFILE
 } ArgType;
 
-
-/**
- * Initialise the command table
- * @param cmdTab Pointer to command table
- */
 void initCmdTable(cmdTable *cmdTab);
 
-/**
- * Frees all memory allocated while making command table
- * @param cmdTab Pointer to command table
- */
 void freeCmdTable(cmdTable *cmdTab);
 
-/**
- * Function to initialise command table using command line string
- * @param cmdLine user input command
- * @param cmdTab Pointer to command table
- */
 void parse(char *cmdLine, cmdTable *cmdTab);
 
-/**
- * Function to print out command table
- * @param cmdTab Pointer to command table
- */
 void printCmdTable(cmdTable *cmdTab);

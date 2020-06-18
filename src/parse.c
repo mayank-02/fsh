@@ -4,6 +4,11 @@
 #include <stdbool.h>
 #include "parse.h"
 
+/**
+ * @brief Initialise the command table
+ * 
+ * @param cmdTab Pointer to command table
+ */
 void initCmdTable(cmdTable *cmdTab) {
 	debug_printf("%s\n", "initCmdTable: Entered");
 
@@ -20,6 +25,11 @@ void initCmdTable(cmdTable *cmdTab) {
 	debug_printf("%s\n", "initCmdTable: Exited");
 }
 
+/**
+ * @brief Free the command table pointed by cmdTab
+ * 
+ * @param cmdTab Pointer to command table
+ */
 void freeCmdTable(cmdTable *cmdTab) {
 	debug_printf("%s\n", "freeCmdTable: Entered");
 
@@ -38,6 +48,21 @@ void freeCmdTable(cmdTable *cmdTab) {
 	debug_printf("%s\n", "freeCmdTable: Exited");
 }
 
+/**
+ * @brief Parse the command line and insert into command table
+ * 
+ * Following a state machine, the parser tokenizes the string based on 6 states:
+ * 1. INIT - The state machine starts in this state
+ * 2. ARGS - When inside an argument (includes process name)
+ * 3. CMD - When not in any other state
+ * 4. SPECIAL - When any of the special operators is encountered (<, >, |)
+ * 5. AMPERSAND - When next character is &
+ * 6. FILENAME - When parsing a file name for input or output
+ * 
+ * @param cmdLine Pointer to line to be parsed
+ * @param cmdTab Pointer to command table to store into
+ * @see cmdTable
+ */
 void parse(char *cmdLine, cmdTable *cmdTab) {
 	debug_printf("parse: %s\n", cmdLine);
 
@@ -263,6 +288,11 @@ void parse(char *cmdLine, cmdTable *cmdTab) {
 	debug_printf("%s\n", "parse: Exited");
 }
 
+/**
+ * @brief Prints command table
+ * 
+ * @param cmdTab Pointer to command table
+ */
 void printCmdTable(cmdTable *cmdTab) {
 	printf("===============================================\n");
 	printf("Command Table:\n");
@@ -280,19 +310,6 @@ void printCmdTable(cmdTable *cmdTab) {
 	}
 	printf("Input file: %s\n", cmdTab->infile);
 	printf("Output file: %s\n", cmdTab->outfile);
-	printf("Is background? %s\n", cmdTab->isbackground?"true":"false");
+	printf("Is background? %s\n", cmdTab->isbackground? "true" : "false");
 	printf("===============================================\n");
 }
-
-/* int main(int argc, char **argv) {
-	cmdTable * cmdTab = calloc(1, sizeof(cmdTable));
-	char cmdLine[] = "sfha;kjs |s ssdno | sdfjb -sdf -dsf a < asf askjb > asbduob | asfob";
-	
-	initCmdTable(cmdTab);
-	parse(cmdLine, cmdTab);
-	printCmdTable(cmdTab);
-	freeCmdTable(cmdTab);
-
-	free(cmdTab);
-	return 0;
-} */
